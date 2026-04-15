@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 namespace MediaCodec.Audio;
 
 /// <summary>
-/// Декодирует IMA ADPCM поток обратно в 16-bit PCM.
-/// Зеркало ImaAdpcmEncoder, таблицы и логика идентичны.
+/// Декодирует IMA ADPCM поток обратно в 16-bit PCM
+/// Зеркало ImaAdpcmEncoder, таблицы и логика идентичны
 /// </summary>
 public sealed class ImaAdpcmDecoder
 {
@@ -105,7 +105,7 @@ public sealed class ImaAdpcmDecoder
     }
 
     /// <summary>
-    /// Состояние одного канала: текущий предсказатель и индекс шага.
+    /// Состояние одного канала: текущий предсказатель и индекс шага
     /// </summary>
     private struct ChannelState
     {

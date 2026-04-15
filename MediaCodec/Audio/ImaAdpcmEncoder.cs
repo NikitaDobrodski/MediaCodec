@@ -108,8 +108,6 @@ public sealed class ImaAdpcmEncoder
         step >>= 1;
         if (diff >= step) nibble |= 1;
 
-        // Обновляем predictor ТОЧНО ТАК ЖЕ как это делает decoder
-        // Это критично для синхронизации состояний
         step = StepTable[state.StepIndex];
         int vpdiff = step >> 3;
         if ((nibble & 4) != 0) vpdiff += step;
@@ -124,7 +122,7 @@ public sealed class ImaAdpcmEncoder
     }
 
     /// <summary>
-    /// Состояние кодирования для одного канала: текущий predictor и stepIndex.
+    /// Состояние кодирования для одного канала: текущий predictor и stepIndex
     /// </summary>
     private struct ChannelState
     {

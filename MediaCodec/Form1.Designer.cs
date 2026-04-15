@@ -1,212 +1,158 @@
-﻿namespace MediaCodec
+﻿namespace MediaCodec;
+
+partial class Form1
 {
-    partial class Form1
+    #region Fields
+
+    private System.ComponentModel.IContainer components = null; // переменная контейнера компонентов
+    private Panel pnlToolbar; // панель инструментов
+
+    private Button btnLoadWav; // кнопка загрузки WAV
+    private Button btnLoadFrames; // кнопка загрузки кадров
+    private Button btnGenFrames; // кнопка генерации кадров
+    private Button btnEncode; // кнопка кодирования
+    private Button btnDecode; // кнопка декодирования
+    private Button btnPlay; // кнопка воспроизведения
+    private Button btnStop; // кнопка остановки
+
+    private SplitContainer splitMain; // разделитель
+    private PictureBox pictureBoxFrame; // картинка
+    private RichTextBox rtbLog; // текстовый блок
+
+    private Panel pnlBottom; // нижняя панель
+    private ProgressBar progressBar; // панель прогресса
+    private Label lblStatus; // статус
+    private Label lblTimer; // таймер
+
+    #endregion
+
+    #region Dispose
+
+    /// <summary>
+    /// Освобождение ресурсов
+    /// </summary>
+    /// <param name="disposing">Признак освобождения управляемых ресурсов</param>
+    protected override void Dispose(bool disposing)
     {
-        private System.ComponentModel.IContainer components = null;
-
-        private Panel pnlToolbar;
-        private FlowLayoutPanel flowButtons;
-        private Button btnLoadWav;
-        private Button btnLoadFrames;
-        private Label lblSep1;
-        private Button btnEncode;
-        private Button btnDecode;
-        private Label lblSep2;
-        private Button btnPlay;
-        private Button btnStop;
-        private SplitContainer splitMain;
-        private PictureBox pictureBoxFrame;
-        private Panel pnlLog;
-        private Label lblLogHeader;
-        private RichTextBox rtbLog;
-        private Panel pnlBottom;
-        private ProgressBar progressBar;
-        private Label lblStatus;
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && components != null) components.Dispose();
-            base.Dispose(disposing);
-        }
-
-        private void InitializeComponent()
-        {
-            pnlToolbar = new Panel();
-            flowButtons = new FlowLayoutPanel();
-            btnLoadWav = new Button();
-            btnLoadFrames = new Button();
-            lblSep1 = new Label();
-            btnEncode = new Button();
-            btnDecode = new Button();
-            lblSep2 = new Label();
-            btnPlay = new Button();
-            btnStop = new Button();
-            splitMain = new SplitContainer();
-            pictureBoxFrame = new PictureBox();
-            pnlLog = new Panel();
-            lblLogHeader = new Label();
-            rtbLog = new RichTextBox();
-            pnlBottom = new Panel();
-            progressBar = new ProgressBar();
-            lblStatus = new Label();
-
-            SuspendLayout();
-
-            // ── Form ──────────────────────────────────────────────────────────
-            AutoScaleDimensions = new SizeF(96F, 96F);
-            AutoScaleMode = AutoScaleMode.Dpi;
-            Text = "MediaCodec";
-            Size = new Size(1100, 700);
-            MinimumSize = new Size(800, 560);
-            BackColor = Color.FromArgb(24, 24, 36);
-            StartPosition = FormStartPosition.CenterScreen;
-
-            // ── Toolbar ───────────────────────────────────────────────────────
-            pnlToolbar.Dock = DockStyle.Top;
-            pnlToolbar.Height = 58;
-            pnlToolbar.BackColor = Color.FromArgb(16, 16, 26);
-            pnlToolbar.Padding = new Padding(8, 10, 8, 8);
-
-            flowButtons.Dock = DockStyle.Fill;
-            flowButtons.FlowDirection = FlowDirection.LeftToRight;
-            flowButtons.WrapContents = false;
-            flowButtons.BackColor = Color.Transparent;
-            flowButtons.Padding = new Padding(0);
-
-            // Кнопки — группа 1: Load
-            Btn(btnLoadWav, "⬆  Load WAV", Color.FromArgb(58, 130, 246));
-            Btn(btnLoadFrames, "⬆  Load Frames", Color.FromArgb(58, 130, 246));
-            btnLoadFrames.Enabled = false;
-
-            // Разделитель
-            Sep(lblSep1);
-
-            // Группа 2: Encode/Decode
-            Btn(btnEncode, "⚙  Encode", Color.FromArgb(34, 197, 94));
-            Btn(btnDecode, "⚙  Decode", Color.FromArgb(34, 197, 94));
-            btnEncode.Enabled = false;
-            btnDecode.Enabled = false;
-
-            Sep(lblSep2);
-
-            // Группа 3: Play/Stop
-            Btn(btnPlay, "▶  Play", Color.FromArgb(234, 179, 8));
-            Btn(btnStop, "■  Stop", Color.FromArgb(168, 85, 247));
-            btnPlay.Enabled = false;
-            btnStop.Enabled = false;
-
-            flowButtons.Controls.AddRange(new Control[]
-            {
-                btnLoadWav, btnLoadFrames, lblSep1,
-                btnEncode,  btnDecode,     lblSep2,
-                btnPlay,    btnStop
-            });
-
-            pnlToolbar.Controls.Add(flowButtons);
-
-            // ── SplitContainer ────────────────────────────────────────────────
-            ((System.ComponentModel.ISupportInitialize)splitMain).BeginInit();
-            splitMain.Dock = DockStyle.Fill;
-            splitMain.Orientation = Orientation.Vertical;
-            
-            splitMain.SplitterWidth = 4;
-            splitMain.BackColor = Color.FromArgb(40, 40, 55);
-            splitMain.Panel1MinSize = 0;
-            splitMain.Panel2MinSize = 0;
-
-            // PictureBox
-            ((System.ComponentModel.ISupportInitialize)pictureBoxFrame).BeginInit();
-            pictureBoxFrame.Dock = DockStyle.Fill;
-            pictureBoxFrame.BackColor = Color.FromArgb(8, 8, 14);
-            pictureBoxFrame.SizeMode = PictureBoxSizeMode.Zoom;
-            pictureBoxFrame.BorderStyle = BorderStyle.None;
-            ((System.ComponentModel.ISupportInitialize)pictureBoxFrame).EndInit();
-            splitMain.Panel1.Controls.Add(pictureBoxFrame);
-            splitMain.Panel1.BackColor = Color.FromArgb(8, 8, 14);
-
-            // Log panel
-            pnlLog.Dock = DockStyle.Fill;
-            pnlLog.BackColor = Color.FromArgb(14, 14, 22);
-
-            lblLogHeader.Dock = DockStyle.Top;
-            lblLogHeader.Height = 28;
-            lblLogHeader.Text = "  OUTPUT";
-            lblLogHeader.Font = new Font("Consolas", 8f, FontStyle.Bold);
-            lblLogHeader.ForeColor = Color.FromArgb(80, 80, 110);
-            lblLogHeader.BackColor = Color.FromArgb(12, 12, 20);
-
-            rtbLog.Dock = DockStyle.Fill;
-            rtbLog.BackColor = Color.FromArgb(14, 14, 22);
-            rtbLog.ForeColor = Color.FromArgb(180, 180, 220);
-            rtbLog.Font = new Font("Consolas", 9f);
-            rtbLog.BorderStyle = BorderStyle.None;
-            rtbLog.ReadOnly = true;
-            rtbLog.Padding = new Padding(8);
-            rtbLog.ScrollBars = RichTextBoxScrollBars.Vertical;
-
-            pnlLog.Controls.Add(rtbLog);
-            pnlLog.Controls.Add(lblLogHeader);
-            splitMain.Panel2.Controls.Add(pnlLog);
-            splitMain.Panel2.BackColor = Color.FromArgb(14, 14, 22);
-
-            ((System.ComponentModel.ISupportInitialize)splitMain).EndInit();
-
-            // ── Bottom ────────────────────────────────────────────────────────
-            pnlBottom.Dock = DockStyle.Bottom;
-            pnlBottom.Height = 36;
-            pnlBottom.BackColor = Color.FromArgb(12, 12, 20);
-            pnlBottom.Padding = new Padding(8, 8, 8, 0);
-
-            progressBar.Dock = DockStyle.Left;
-            progressBar.Width = 480;
-            progressBar.Style = ProgressBarStyle.Continuous;
-            progressBar.BackColor = Color.FromArgb(28, 28, 42);
-            progressBar.ForeColor = Color.FromArgb(34, 197, 94);
-
-            lblStatus.Dock = DockStyle.Fill;
-            lblStatus.Text = "Ready";
-            lblStatus.ForeColor = Color.FromArgb(110, 110, 145);
-            lblStatus.Font = new Font("Consolas", 9f);
-            lblStatus.Padding = new Padding(12, 0, 0, 0);
-            lblStatus.TextAlign = ContentAlignment.MiddleLeft;
-
-            pnlBottom.Controls.Add(lblStatus);
-            pnlBottom.Controls.Add(progressBar);
-
-            // ── Assemble ──────────────────────────────────────────────────────
-            Controls.Add(splitMain);
-            Controls.Add(pnlBottom);
-            Controls.Add(pnlToolbar);
-
-            ResumeLayout(false);
-        }
-
-        private static void Btn(Button btn, string text, Color color)
-        {
-            btn.Text = text;
-            btn.Height = 36;
-            btn.AutoSize = false;
-            btn.Width = TextRenderer.MeasureText(text, new Font("Segoe UI", 9f)).Width + 28;
-            btn.Margin = new Padding(0, 0, 6, 0);
-            btn.FlatStyle = FlatStyle.Flat;
-            btn.FlatAppearance.BorderSize = 1;
-            btn.FlatAppearance.BorderColor = color;
-            btn.BackColor = Color.FromArgb(
-                (int)(color.R * 0.15f + 16),
-                (int)(color.G * 0.15f + 16),
-                (int)(color.B * 0.15f + 20));
-            btn.ForeColor = color;
-            btn.Font = new Font("Segoe UI", 9f);
-            btn.Cursor = Cursors.Hand;
-        }
-
-        private static void Sep(Label lbl)
-        {
-            lbl.Text = "";
-            lbl.Width = 1;
-            lbl.Height = 36;
-            lbl.BackColor = Color.FromArgb(50, 50, 70);
-            lbl.Margin = new Padding(4, 0, 10, 0);
-        }
+        if (disposing && components != null)
+            components.Dispose();
+        base.Dispose(disposing);
     }
+
+    #endregion
+
+    #region InitializeComponent
+
+    /// <summary>
+    /// Метод инициализации компонентов
+    /// </summary>
+    private void InitializeComponent()
+    {
+        pnlToolbar = new Panel();
+        btnLoadWav = new Button();
+        btnLoadFrames = new Button();
+        btnGenFrames = new Button();
+        btnEncode = new Button();
+        btnDecode = new Button();
+        btnPlay = new Button();
+        btnStop = new Button();
+        splitMain = new SplitContainer();
+        pictureBoxFrame = new PictureBox();
+        rtbLog = new RichTextBox();
+        pnlBottom = new Panel();
+        progressBar = new ProgressBar();
+        lblStatus = new Label();
+        lblTimer = new Label();
+
+        SuspendLayout();
+
+        Text = "MediaCodec";
+        Size = new Size(1100, 700);
+        MinimumSize = new Size(800, 560);
+        BackColor = Color.FromArgb(18, 18, 28);
+        ForeColor = Color.FromArgb(220, 220, 240);
+        Font = new Font("Segoe UI", 9f);
+        StartPosition = FormStartPosition.CenterScreen;
+
+        pnlToolbar.Dock = DockStyle.Top;
+        pnlToolbar.Height = 52;
+        pnlToolbar.BackColor = Color.FromArgb(22, 22, 36);
+
+        StyleBtn(btnLoadWav, "Load WAV", 10, 100, Color.FromArgb(79, 142, 247));
+        StyleBtn(btnLoadFrames, "Load Frames", 118, 110, Color.FromArgb(79, 142, 247));
+        StyleBtn(btnGenFrames, "Gen Frames", 236, 100, Color.FromArgb(99, 179, 237));
+        StyleBtn(btnEncode, "Encode", 344, 80, Color.FromArgb(62, 207, 122));
+        StyleBtn(btnDecode, "Decode", 432, 80, Color.FromArgb(62, 207, 122));
+        StyleBtn(btnPlay, "▶  Play", 568, 90, Color.FromArgb(245, 166, 35));
+        StyleBtn(btnStop, "■  Stop", 666, 90, Color.FromArgb(167, 139, 250));
+
+        btnPlay.Enabled = false;
+        btnStop.Enabled = false;
+
+        pnlToolbar.Controls.AddRange(new Control[]
+        {
+            btnLoadWav, btnLoadFrames, btnGenFrames, btnEncode, btnDecode, btnPlay, btnStop
+        });
+
+        ((System.ComponentModel.ISupportInitialize)splitMain).BeginInit();
+        splitMain.Dock = DockStyle.Fill;
+        splitMain.Orientation = Orientation.Vertical;
+        splitMain.SplitterWidth = 4;
+        splitMain.BackColor = Color.FromArgb(35, 35, 50);
+
+        ((System.ComponentModel.ISupportInitialize)pictureBoxFrame).BeginInit();
+        pictureBoxFrame.Dock = DockStyle.Fill;
+        pictureBoxFrame.BackColor = Color.Black;
+        pictureBoxFrame.SizeMode = PictureBoxSizeMode.Zoom;
+        pictureBoxFrame.BorderStyle = BorderStyle.None;
+        ((System.ComponentModel.ISupportInitialize)pictureBoxFrame).EndInit();
+
+        rtbLog.Dock = DockStyle.Fill;
+        rtbLog.BackColor = Color.FromArgb(14, 14, 22);
+        rtbLog.ForeColor = Color.FromArgb(160, 160, 200);
+        rtbLog.Font = new Font("Consolas", 8.5f);
+        rtbLog.BorderStyle = BorderStyle.None;
+        rtbLog.ReadOnly = true;
+        rtbLog.Padding = new Padding(6);
+        rtbLog.ScrollBars = RichTextBoxScrollBars.Vertical;
+
+        splitMain.Panel1.BackColor = Color.Black;
+        splitMain.Panel2.BackColor = Color.FromArgb(14, 14, 22);
+        splitMain.Panel1.Controls.Add(pictureBoxFrame);
+        splitMain.Panel2.Controls.Add(rtbLog);
+        ((System.ComponentModel.ISupportInitialize)splitMain).EndInit();
+
+        pnlBottom.Dock = DockStyle.Bottom;
+        pnlBottom.Height = 38;
+        pnlBottom.BackColor = Color.FromArgb(22, 22, 36);
+
+        progressBar.Location = new Point(10, 10);
+        progressBar.Size = new Size(540, 18);
+        progressBar.Style = ProgressBarStyle.Continuous;
+        progressBar.BackColor = Color.FromArgb(32, 32, 48);
+        progressBar.ForeColor = Color.FromArgb(62, 207, 122);
+
+        lblStatus.Location = new Point(562, 12);
+        lblStatus.AutoSize = true;
+        lblStatus.Text = "Ready";
+        lblStatus.ForeColor = Color.FromArgb(107, 107, 128);
+        lblStatus.Font = new Font("Consolas", 8.5f);
+
+        lblTimer.Location = new Point(760, 12);
+        lblTimer.AutoSize = true;
+        lblTimer.Text = "00:00 / 00:00";
+        lblTimer.ForeColor = Color.FromArgb(107, 107, 128);
+        lblTimer.Font = new Font("Consolas", 8.5f);
+
+        pnlBottom.Controls.AddRange(new Control[] { progressBar, lblStatus, lblTimer });
+
+        Controls.Add(splitMain);
+        Controls.Add(pnlBottom);
+        Controls.Add(pnlToolbar);
+
+        ResumeLayout(false);
+        PerformLayout();
+    }
+
+    #endregion
 }

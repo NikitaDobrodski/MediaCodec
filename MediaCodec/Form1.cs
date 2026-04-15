@@ -1,228 +1,418 @@
 using MediaCodec.Audio;
+using MediaCodec.Video;
 
-namespace MediaCodec
+namespace MediaCodec;
+
+public partial class Form1 : Form
 {
-    public partial class Form1 : Form
+    #region Fields
+
+    private string? _wavPath;
+    private string? _framesFolder;
+    private CancellationTokenSource? _cts;
+
+    #endregion
+
+    #region Constructor
+
+    public Form1()
     {
-        private string? _wavPath;
-        private string? _framesFolder;
+        InitializeComponent();
+        WireEvents();
+        Log("MediaCodec ready.", LogColor.Muted);
+    }
 
-        public Form1()
+    #endregion
+
+    #region Event wiring
+
+    private void WireEvents()
+    {
+        btnLoadWav.Click += BtnLoadWav_Click;
+        btnLoadFrames.Click += BtnLoadFrames_Click;
+        btnGenFrames.Click += BtnGenFrames_Click;
+        btnEncode.Click += BtnEncode_Click;
+        btnDecode.Click += BtnDecode_Click;
+        btnPlay.Click += BtnPlay_Click;
+        btnStop.Click += BtnStop_Click;
+    }
+
+    #endregion
+
+    #region Form lifecycle
+
+    /// <summary>
+    /// Вызывается при первом отображении формы
+    /// </summary>
+    /// <param name="e">Аргументы события</param>
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        // Order matters: MinSizes first, then SplitterDistance.
+        splitMain.Panel1MinSize = 300;
+        splitMain.Panel2MinSize = 220;
+        splitMain.SplitterDistance = (int)(ClientSize.Width * 0.65);
+    }
+
+    #endregion
+
+    #region Load
+
+    /// <summary>
+    /// Загружает WAV-файл
+    /// </summary>
+    /// <param name="sender">Источник события</param>
+    /// <param name="e">Аргументы события</param>
+    private void BtnLoadWav_Click(object? sender, EventArgs e)
+    {
+        using var dlg = new OpenFileDialog
         {
-            InitializeComponent();
-            WireEvents();
-            Log("MediaCodec ready. Load a WAV file to start.", Clr.Muted);
+            Title = "Select WAV file",
+            Filter = "WAV files (*.wav)|*.wav"
+        };
+        if (dlg.ShowDialog() != DialogResult.OK) return;
+
+        _wavPath = dlg.FileName;
+        Log($"WAV loaded: {Path.GetFileName(_wavPath)}", LogColor.Blue);
+        SetStatus($"WAV: {Path.GetFileName(_wavPath)}");
+    }
+
+    /// <summary>
+    /// Загружает PNG-файлы
+    /// </summary>
+    /// <param name="sender">Источник события</param>
+    /// <param name="e">Аргументы события</param>
+    private void BtnLoadFrames_Click(object? sender, EventArgs e)
+    {
+        using var dlg = new FolderBrowserDialog
+        {
+            Description = "Select folder with PNG frames",
+            UseDescriptionForTitle = true
+        };
+        if (dlg.ShowDialog() != DialogResult.OK) return;
+
+        _framesFolder = dlg.SelectedPath;
+        var count = Directory.GetFiles(_framesFolder, "*.png").Length;
+        Log($"Frames: {Path.GetFileName(_framesFolder)}  ({count} PNG files)", LogColor.Blue);
+        SetStatus($"Frames: {count} files");
+    }
+
+    /// <summary>
+    /// Генерирует PNG-файлы
+    /// </summary>
+    /// <param name="sender">Источник события</param>
+    /// <param name="e">Аргументы события</param>
+    private async void BtnGenFrames_Click(object? sender, EventArgs e)
+    {
+        using var dlg = new FolderBrowserDialog
+        {
+            Description = "Select folder to save generated frames",
+            UseDescriptionForTitle = true
+        };
+        if (dlg.ShowDialog() != DialogResult.OK) return;
+
+        _framesFolder = dlg.SelectedPath;
+        var folder = _framesFolder;
+
+        SetBusy(true);
+        try
+        {
+            Log("Generating 100 test frames (320×240)...", LogColor.Muted);
+            await Task.Run(() => TestFrameGenerator.Generate(folder, count: 100, width: 320, height: 240));
+
+            int saved = Directory.GetFiles(folder, "*.png").Length;
+            Log($"Generated {saved} frames → {Path.GetFileName(folder)}", LogColor.Green);
+            SetStatus($"Frames: {saved} files");
+        }
+        catch (Exception ex)
+        {
+            Log($"Error: {ex.Message}", LogColor.Red);
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
+
+    #endregion
+
+    #region Encode
+
+    /// <summary>
+    /// Запускает кодирование
+    /// </summary>
+    /// <param name="sender">Источник события</param>
+    /// <param name="e">Аргументы события</param>
+    private async void BtnEncode_Click(object? sender, EventArgs e)
+    {
+        if (_wavPath is null && _framesFolder is null)
+        {
+            Log("Nothing to encode. Load WAV and/or Frames first.", LogColor.Amber);
+            return;
         }
 
-        // ── Привязка событий ──────────────────────────────────────────────────
+        SetBusy(true);
+        _cts = new CancellationTokenSource();
 
-        private void WireEvents()
+        try
         {
-            btnLoadWav.Click += BtnLoadWav_Click;
-            btnLoadFrames.Click += BtnLoadFrames_Click;
-            btnEncode.Click += BtnEncode_Click;
-            btnDecode.Click += BtnDecode_Click;
-            btnPlay.Click += BtnPlay_Click;
-            btnStop.Click += BtnStop_Click;
-        }
-
-        protected override void OnShown(EventArgs e)
-        {
-            base.OnShown(e);
-            splitMain.Panel1MinSize = 300;
-            splitMain.Panel2MinSize = 220;
-            splitMain.SplitterDistance = (int)(ClientSize.Width * 0.63);
-        }
-
-        // ── Load ──────────────────────────────────────────────────────────────
-
-        private void BtnLoadWav_Click(object? sender, EventArgs e)
-        {
-            using var dlg = new OpenFileDialog
+            //Audio: WAV → ADPCM
+            if (_wavPath is not null)
             {
-                Title = "Select WAV file",
-                Filter = "WAV files (*.wav)|*.wav"
-            };
-            if (dlg.ShowDialog() != DialogResult.OK) return;
-
-            _wavPath = dlg.FileName;
-            var info = new FileInfo(_wavPath);
-            Log($"WAV loaded: {info.Name}  ({info.Length / 1024} KB)", Clr.Blue);
-            SetStatus($"WAV: {info.Name}");
-
-            // Разблокируем следующие кнопки
-            btnEncode.Enabled = true;
-            btnLoadFrames.Enabled = true;
-        }
-
-        private void BtnLoadFrames_Click(object? sender, EventArgs e)
-        {
-            using var dlg = new FolderBrowserDialog
-            {
-                Description = "Select folder with PNG frames",
-                UseDescriptionForTitle = true
-            };
-            if (dlg.ShowDialog() != DialogResult.OK) return;
-
-            _framesFolder = dlg.SelectedPath;
-            int count = Directory.GetFiles(_framesFolder, "*.png").Length;
-            Log($"Frames: {Path.GetFileName(_framesFolder)}  ({count} PNG files)", Clr.Blue);
-            SetStatus($"Frames: {count} files");
-        }
-
-        // ── Encode / Decode ───────────────────────────────────────────────────
-
-        private async void BtnEncode_Click(object? sender, EventArgs e)
-        {
-            if (_wavPath is null) { Log("Load a WAV file first.", Clr.Amber); return; }
-
-            SetBusy(true);
-            try
-            {
-                var wavPath = _wavPath;
-                Log("Reading WAV...", Clr.Muted);
-
+                Log("Starting IMA ADPCM encode...", LogColor.Green);
                 await Task.Run(() =>
                 {
-                    // 1. Читаем WAV
-                    var wav = WavReader.Load(wavPath);
-                    Log($"  Sample rate: {wav.SampleRate} Hz  |  Channels: {wav.Channels}  |  Samples: {wav.Samples.Length}", Clr.Muted);
-
-                    // 2. Кодируем
-                    Log("Encoding IMA ADPCM...", Clr.Green);
+                    var wav = WavReader.Load(_wavPath);
                     var encoder = new ImaAdpcmEncoder();
                     var adpcm = encoder.Encode(wav.Samples, wav.Channels);
 
-                    // 3. Сохраняем рядом с WAV
-                    var outPath = Path.ChangeExtension(wavPath, ".adpcm");
+                    var outPath = Path.ChangeExtension(_wavPath, ".adpcm");
                     File.WriteAllBytes(outPath, adpcm);
-
-                    double ratio = (double)wav.Samples.Length * 2 / adpcm.Length;
-                    Log($"Saved: {Path.GetFileName(outPath)}  ({adpcm.Length / 1024} KB)  compression: {ratio:F1}x", Clr.Green);
-                });
-
-                SetStatus("Encode done.");
-                btnDecode.Enabled = true;
+                    Log($"ADPCM saved: {Path.GetFileName(outPath)}", LogColor.Green);
+                }, _cts.Token);
             }
-            catch (Exception ex)
+
+            //Video: PNG frames → MJPEG
+            if (_framesFolder is not null)
             {
-                Log($"Error: {ex.Message}", Clr.Red);
-                SetStatus("Error.");
+                Log("Starting MJPEG encode...", LogColor.Green);
+
+                var outPath = Path.Combine(_framesFolder, "output.mjpeg");
+                var encoder = new MjpegEncoder();
+
+                encoder.ProgressChanged += (cur, total) =>
+                {
+                    SetProgress((int)(cur / (double)total * 100));
+                    SetStatus($"Encoding frame {cur}/{total}");
+                };
+
+                await Task.Run(() => encoder.Encode(_framesFolder, outPath), _cts.Token);
+                Log($"MJPEG saved: {outPath}", LogColor.Green);
             }
-            finally { SetBusy(false); }
+
+            SetStatus("Encode complete.");
+            Log("Encode complete.", LogColor.Green);
+            btnPlay.Enabled = true;
         }
-
-        private async void BtnDecode_Click(object? sender, EventArgs e)
+        catch (OperationCanceledException)
         {
-            if (_wavPath is null) { Log("Load a WAV file first.", Clr.Amber); return; }
+            Log("Encode cancelled.", LogColor.Muted);
+        }
+        catch (Exception ex)
+        {
+            Log($"Error: {ex.Message}", LogColor.Red);
+        }
+        finally
+        {
+            SetBusy(false);
+            SetProgress(0);
+        }
+    }
 
-            var adpcmPath = Path.ChangeExtension(_wavPath, ".adpcm");
-            if (!File.Exists(adpcmPath))
+    #endregion
+
+    #region Decode
+
+    /// <summary>
+    /// Декодирование
+    /// </summary>
+    /// <param name="sender">Источник события</param>
+    /// <param name="e">Аргументы события</param>
+    private async void BtnDecode_Click(object? sender, EventArgs e)
+    {
+        SetBusy(true);
+        _cts = new CancellationTokenSource();
+
+        try
+        {
+            //Audio: ADPCM → PCM
+            if (_wavPath is not null)
             {
-                Log("ADPCM file not found — encode first.", Clr.Amber);
-                return;
+                Log("Decoding ADPCM → PCM...", LogColor.Purple);
+                await Task.Run(() =>
+                {
+                    var adpcmPath = Path.ChangeExtension(_wavPath, ".adpcm");
+                    if (!File.Exists(adpcmPath))
+                    {
+                        Log("ADPCM file not found. Encode first.", LogColor.Amber);
+                        return;
+                    }
+
+                    var adpcm = File.ReadAllBytes(adpcmPath);
+                    var wav = WavReader.Load(_wavPath);
+                    var decoder = new ImaAdpcmDecoder();
+                    var pcm = decoder.Decode(adpcm, wav.Channels);
+
+                    var outPath = Path.ChangeExtension(_wavPath, ".decoded.wav");
+                    WavReader.Save(outPath, pcm, wav.SampleRate, wav.Channels);
+                    Log($"PCM saved: {Path.GetFileName(outPath)}", LogColor.Purple);
+                }, _cts.Token);
             }
 
-            SetBusy(true);
-            try
+            //Video: MJPEG → frames preview
+            if (_framesFolder is not null)
             {
-                var wavPath = _wavPath;
-                var adpcmFile = adpcmPath;
+                Log("Decoding MJPEG frames...", LogColor.Purple);
+
+                var mjpegPath = Path.Combine(_framesFolder, "output.mjpeg");
+                if (!File.Exists(mjpegPath))
+                {
+                    Log("MJPEG file not found. Encode first.", LogColor.Amber);
+                    SetBusy(false);
+                    return;
+                }
+
+                var decoder = new MjpegDecoder();
+                int i = 0;
 
                 await Task.Run(() =>
                 {
-                    Log("Decoding ADPCM → PCM...", Clr.Purple);
-                    var adpcm = File.ReadAllBytes(adpcmFile);
-                    var srcWav = WavReader.Load(wavPath);
+                    foreach (var frame in decoder.DecodeFrames(mjpegPath))
+                    {
+                        i++;
+                        pictureBoxFrame.InvokeIfRequired(() =>
+                        {
+                            pictureBoxFrame.Image?.Dispose();
+                            pictureBoxFrame.Image = (Bitmap)frame.Clone();
+                        });
+                        SetStatus($"Decoded frame {i}");
+                    }
+                }, _cts.Token);
 
-                    var decoder = new ImaAdpcmDecoder();
-                    var pcm = decoder.Decode(adpcm, srcWav.Channels);
-
-                    var outPath = Path.ChangeExtension(wavPath, ".decoded.wav");
-                    WavReader.Save(outPath, pcm, srcWav.SampleRate, srcWav.Channels);
-
-                    Log($"Saved: {Path.GetFileName(outPath)}  ({new FileInfo(outPath).Length / 1024} KB)", Clr.Purple);
-                    Log("Roundtrip complete. Compare original and decoded on hearing.", Clr.Green);
-                });
-
-                SetStatus("Decode done.");
+                Log($"Decoded {i} frames.", LogColor.Purple);
             }
-            catch (Exception ex)
-            {
-                Log($"Error: {ex.Message}", Clr.Red);
-                SetStatus("Error.");
-            }
-            finally { SetBusy(false); }
+
+            SetStatus("Decode complete.");
         }
-
-        // ── Playback (Part 3 — заглушки) ──────────────────────────────────────
-
-        private void BtnPlay_Click(object? sender, EventArgs e)
+        catch (OperationCanceledException)
         {
-            Log("Playback — not yet implemented (Part 3).", Clr.Amber);
+            Log("Decode cancelled.", LogColor.Muted);
         }
-
-        private void BtnStop_Click(object? sender, EventArgs e)
+        catch (Exception ex)
         {
-            Log("Stopped.", Clr.Muted);
-            btnPlay.Enabled = true;
-            btnStop.Enabled = false;
+            Log($"Error: {ex.Message}", LogColor.Red);
         }
-
-        // ── Helpers ───────────────────────────────────────────────────────────
-
-        private static class Clr
+        finally
         {
-            public static readonly Color Blue = Color.FromArgb(79, 142, 247);
-            public static readonly Color Green = Color.FromArgb(62, 207, 122);
-            public static readonly Color Amber = Color.FromArgb(245, 166, 35);
-            public static readonly Color Purple = Color.FromArgb(167, 139, 250);
-            public static readonly Color Red = Color.FromArgb(240, 80, 80);
-            public static readonly Color Muted = Color.FromArgb(107, 107, 128);
-        }
-
-        private void Log(string message, Color? color = null)
-        {
-            var c = color ?? Color.FromArgb(160, 160, 200);
-            if (rtbLog.InvokeRequired)
-            {
-                rtbLog.Invoke(() => AppendLog(message, c));
-            }
-            else
-            {
-                AppendLog(message, c);
-            }
-        }
-
-        private void AppendLog(string message, Color color)
-        {
-            rtbLog.SelectionColor = Color.FromArgb(70, 70, 90);
-            rtbLog.AppendText($"[{DateTime.Now:HH:mm:ss}] ");
-            rtbLog.SelectionColor = color;
-            rtbLog.AppendText(message + "\n");
-            rtbLog.ScrollToCaret();
-        }
-
-        private void SetStatus(string text)
-        {
-            if (lblStatus.InvokeRequired) lblStatus.Invoke(() => lblStatus.Text = text);
-            else lblStatus.Text = text;
-        }
-
-        private void SetProgress(int value)
-        {
-            if (progressBar.InvokeRequired) progressBar.Invoke(() => progressBar.Value = Math.Clamp(value, 0, 100));
-            else progressBar.Value = Math.Clamp(value, 0, 100);
-        }
-
-        private void SetBusy(bool busy)
-        {
-            if (InvokeRequired) { Invoke(() => SetBusy(busy)); return; }
-            btnLoadWav.Enabled = !busy;
-            btnLoadFrames.Enabled = !busy && _wavPath is not null;
-            btnEncode.Enabled = !busy && _wavPath is not null;
-            btnDecode.Enabled = !busy;
-            btnStop.Enabled = busy;
+            SetBusy(false);
+            SetProgress(0);
         }
     }
+
+    #endregion
+
+    #region Playback
+
+    /// <summary>
+    /// Воспроизведение
+    /// </summary>
+    /// <param name="sender">Источник события</param>
+    /// <param name="e">Аргументы события</param>
+    private void BtnPlay_Click(object? sender, EventArgs e)
+    {
+        // TODO: реализовать воспроизведение декодированных файлов WAV и MJPEG (с синхронизацией аудио и видео)
+        Log("Playback not yet implemented.", LogColor.Amber);
+        btnPlay.Enabled = false;
+        btnStop.Enabled = true;
+    }
+
+    /// <summary>
+    /// Остановка
+    /// </summary>
+    /// <param name="sender">Источник события</param>
+    /// <param name="e">Аргументы события</param>
+    private void BtnStop_Click(object? sender, EventArgs e)
+    {
+        _cts?.Cancel();
+        btnPlay.Enabled = true;
+        btnStop.Enabled = false;
+        Log("Stopped.", LogColor.Muted);
+    }
+
+    #endregion
+
+    #region UI helpers
+
+    /// <summary>
+    /// Цвета логов
+    /// </summary>
+    private static class LogColor
+    {
+        public static readonly Color Blue = Color.FromArgb(79, 142, 247);
+        public static readonly Color Green = Color.FromArgb(62, 207, 122);
+        public static readonly Color Amber = Color.FromArgb(245, 166, 35);
+        public static readonly Color Purple = Color.FromArgb(167, 139, 250);
+        public static readonly Color Red = Color.FromArgb(240, 80, 80);
+        public static readonly Color Muted = Color.FromArgb(107, 107, 128);
+        public static readonly Color Text = Color.FromArgb(160, 160, 200);
+    }
+
+    /// <summary>
+    /// Вывод в лог
+    /// </summary>
+    /// <param name="message">Сообщение</param>
+    /// <param name="color">Цвет</param>
+    private void Log(string message, Color? color = null)
+    {
+        var c = color ?? LogColor.Text;
+        rtbLog.InvokeIfRequired(() =>
+        {
+            rtbLog.SelectionColor = LogColor.Muted;
+            rtbLog.AppendText($"[{DateTime.Now:HH:mm:ss}] ");
+            rtbLog.SelectionColor = c;
+            rtbLog.AppendText(message + "\n");
+            rtbLog.ScrollToCaret();
+        });
+    }
+
+    /// <summary>
+    /// Установка статуса
+    /// </summary>
+    /// <param name="text">Текст</param>
+    private void SetStatus(string text) =>
+        lblStatus.InvokeIfRequired(() => lblStatus.Text = text);
+
+    private void SetProgress(int value) =>
+        progressBar.InvokeIfRequired(() => progressBar.Value = Math.Clamp(value, 0, 100));
+
+    private void SetBusy(bool busy)
+    {
+        this.InvokeIfRequired(() =>
+        {
+            btnLoadWav.Enabled = !busy;
+            btnLoadFrames.Enabled = !busy;
+            btnGenFrames.Enabled = !busy;
+            btnEncode.Enabled = !busy;
+            btnDecode.Enabled = !busy;
+            btnStop.Enabled = busy;
+        });
+    }
+
+    #endregion
+
+    #region Designer helpers
+
+    /// <summary>
+    /// Настройка кнопки
+    /// </summary>
+    /// <param name="btn">Кнопка</param>
+    /// <param name="text">Текст</param>
+    /// <param name="x">Координата X</param>
+    /// <param name="width">Ширина</param>
+    /// <param name="accent">Цвет акцента</param>
+    private static void StyleBtn(Button btn, string text, int x, int width, Color accent)
+    {
+        btn.Text = text;
+        btn.Location = new Point(x, 9);
+        btn.Size = new Size(width, 34);
+        btn.FlatStyle = FlatStyle.Flat;
+        btn.FlatAppearance.BorderColor = Color.FromArgb(45, 45, 65);
+        btn.FlatAppearance.BorderSize = 1;
+        btn.BackColor = Color.FromArgb(28, 28, 42);
+        btn.ForeColor = accent;
+        btn.Font = new Font("Segoe UI", 8.5f);
+        btn.Cursor = Cursors.Hand;
+    }
+
+    #endregion
 }

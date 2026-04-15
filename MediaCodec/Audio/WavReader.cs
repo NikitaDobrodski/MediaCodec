@@ -16,7 +16,7 @@ public sealed class WavReader
     private WavReader() { }
 
     /// <summary>
-    /// Читает WAV-файл (16-bit или 24-bit PCM, моно/стерео).
+    /// Читает WAV-файл (16-bit или 24-bit PCM, моно/стерео)
     /// </summary>
     public static WavReader Load(string path)
     {
@@ -82,7 +82,7 @@ public sealed class WavReader
     }
 
     /// <summary>
-    /// Сохраняет 16-bit PCM WAV-файл.
+    /// Сохраняет 16-bit PCM WAV-файл
     /// </summary>
     public static void Save(string path, short[] samples, int sampleRate, int channels)
     {
