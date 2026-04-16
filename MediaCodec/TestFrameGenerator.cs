@@ -12,7 +12,7 @@ namespace MediaCodec;
 /// </summary>
 public static class TestFrameGenerator
 {
-    public static void Generate(string outputFolder, int count = 100, int width = 320, int height = 240)
+    public static void Generate(string outputFolder, int count = 250, int width = 320, int height = 240)
     {
         Directory.CreateDirectory(outputFolder);
 

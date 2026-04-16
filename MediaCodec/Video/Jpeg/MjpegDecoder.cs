@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace MediaCodec.Video;
 
 /// <summary>
-/// Декодирует raw MJPEG-контейнер, созданный <see cref="MjpegEncoder"/>.
+/// Декодирует raw MJPEG-контейнер, созданный <see cref="MjpegEncoder"/>
 ///
 /// Ожидаемый формат файла:
 ///   [4]  Magic = "MJPG"
@@ -142,6 +142,29 @@ public sealed class MjpegDecoder
     public List<Bitmap> Decode(string mjpegPath) =>
         DecodeFrames(mjpegPath).ToList();
 
+    /// <summary>
+    /// Строит полный индекс кадров: смещение + длина для каждого
+    /// Используется плеером для произвольного доступа O(1) без перечитывания заголовков
+    /// </summary>
+    public static (long Offset, int Length)[] BuildFrameIndex(string mjpegPath)
+    {
+        using var fs = new FileStream(mjpegPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var br = new BinaryReader(fs);
+
+        ValidateMagic(br);
+        int count = (int)ReadBE32(br);
+        var index = new (long Offset, int Length)[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            uint frameLen = ReadBE32(br);
+            index[i] = (fs.Position, (int)frameLen);  // смещение на начало JPEG-байт + длина
+            fs.Seek(frameLen, SeekOrigin.Current);
+        }
+
+        return index;
+    }
+
     #endregion
 
     #region Вспомогательные методы
@@ -153,10 +176,16 @@ public sealed class MjpegDecoder
     private static Bitmap DecodeJpeg(byte[] jpegBytes)
     {
         using var ms = new MemoryStream(jpegBytes, writable: false);
-        // new Bitmap(stream) читает изображение, поток можно закрыть после конструктора — пиксельные данные копируются в память GDI+
-        return new Bitmap(ms);
+        using var tmp = new Bitmap(ms);
+        // GDI+ держит внутреннюю ссылку на поток даже для JPEG
+        // Клонируем через конструктор копирования — возвращаем независимый объект, не привязанный к MemoryStream после его закрытия (иначе рендер PictureBox бросает исключение)
+        return new Bitmap(tmp);
     }
 
+    /// <summary>
+    /// Валидация магической подписи в начале файла. Выбрасывает исключение, если файл не соответствует формату MJPEG
+    /// </summary>
+    /// <param name="br">BinaryReader для чтения данных</param>
     private static void ValidateMagic(BinaryReader br)
     {
         var magic = br.ReadBytes(4);
@@ -165,6 +194,11 @@ public sealed class MjpegDecoder
                 $"Файл не является валидным MJPEG. Ожидался magic 'MJPG', получено '{Encoding.ASCII.GetString(magic)}'.");
     }
 
+    /// <summary>
+    /// Читает 4 байта в big-endian порядке и возвращает uint32
+    /// </summary>
+    /// <param name="br">BinaryReader для чтения данных</param>
+    /// <returns>Прочитанное значение uint32 в big-endian порядке </returns>
     private static uint ReadBE32(BinaryReader br)
     {
         int b0 = br.ReadByte();

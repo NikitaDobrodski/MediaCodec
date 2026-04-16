@@ -4,34 +4,33 @@ partial class Form1
 {
     #region Fields
 
-    private System.ComponentModel.IContainer components = null; // переменная контейнера компонентов
-    private Panel pnlToolbar; // панель инструментов
+    private System.ComponentModel.IContainer components = null;
 
-    private Button btnLoadWav; // кнопка загрузки WAV
-    private Button btnLoadFrames; // кнопка загрузки кадров
-    private Button btnGenFrames; // кнопка генерации кадров
-    private Button btnEncode; // кнопка кодирования
-    private Button btnDecode; // кнопка декодирования
-    private Button btnPlay; // кнопка воспроизведения
-    private Button btnStop; // кнопка остановки
+    // Toolbar
+    private Panel pnlToolbar;
+    private Button btnLoadWav;
+    private Button btnLoadFrames;
+    private Button btnGenFrames;
+    private Button btnEncode;
+    private Button btnDecode;
+    private Button btnPlay;
+    private Button btnStop;
 
-    private SplitContainer splitMain; // разделитель
-    private PictureBox pictureBoxFrame; // картинка
-    private RichTextBox rtbLog; // текстовый блок
+    // Main area
+    private SplitContainer splitMain;
+    private PictureBox pictureBoxFrame;
+    private RichTextBox rtbLog;
 
-    private Panel pnlBottom; // нижняя панель
-    private ProgressBar progressBar; // панель прогресса
-    private Label lblStatus; // статус
-    private Label lblTimer; // таймер
+    // Bottom status bar
+    private Panel pnlBottom;
+    private ProgressBar progressBar;
+    private Label lblStatus;
+    private Label lblTimer;
 
     #endregion
 
     #region Dispose
 
-    /// <summary>
-    /// Освобождение ресурсов
-    /// </summary>
-    /// <param name="disposing">Признак освобождения управляемых ресурсов</param>
     protected override void Dispose(bool disposing)
     {
         if (disposing && components != null)
@@ -43,9 +42,6 @@ partial class Form1
 
     #region InitializeComponent
 
-    /// <summary>
-    /// Метод инициализации компонентов
-    /// </summary>
     private void InitializeComponent()
     {
         pnlToolbar = new Panel();
@@ -66,6 +62,7 @@ partial class Form1
 
         SuspendLayout();
 
+        // Form 
         Text = "MediaCodec";
         Size = new Size(1100, 700);
         MinimumSize = new Size(800, 560);
@@ -74,17 +71,18 @@ partial class Form1
         Font = new Font("Segoe UI", 9f);
         StartPosition = FormStartPosition.CenterScreen;
 
+        // Toolbar
         pnlToolbar.Dock = DockStyle.Top;
         pnlToolbar.Height = 52;
         pnlToolbar.BackColor = Color.FromArgb(22, 22, 36);
 
-        StyleBtn(btnLoadWav, "Load WAV", 10, 100, Color.FromArgb(79, 142, 247));
-        StyleBtn(btnLoadFrames, "Load Frames", 118, 110, Color.FromArgb(79, 142, 247));
-        StyleBtn(btnGenFrames, "Gen Frames", 236, 100, Color.FromArgb(99, 179, 237));
-        StyleBtn(btnEncode, "Encode", 344, 80, Color.FromArgb(62, 207, 122));
-        StyleBtn(btnDecode, "Decode", 432, 80, Color.FromArgb(62, 207, 122));
-        StyleBtn(btnPlay, "▶  Play", 568, 90, Color.FromArgb(245, 166, 35));
-        StyleBtn(btnStop, "■  Stop", 666, 90, Color.FromArgb(167, 139, 250));
+        StyleBtn(btnLoadWav, "Загрузить WAV", 10, 120, Color.FromArgb(79, 142, 247));
+        StyleBtn(btnLoadFrames, "Загрузить кадры", 138, 130, Color.FromArgb(79, 142, 247));
+        StyleBtn(btnGenFrames, "Генерировать", 276, 110, Color.FromArgb(99, 179, 237));
+        StyleBtn(btnEncode, "Кодировать", 394, 100, Color.FromArgb(62, 207, 122));
+        StyleBtn(btnDecode, "Декодировать", 502, 110, Color.FromArgb(62, 207, 122));
+        StyleBtn(btnPlay, "▶  Играть", 630, 90, Color.FromArgb(245, 166, 35));
+        StyleBtn(btnStop, "■  Стоп", 728, 90, Color.FromArgb(167, 139, 250));
 
         btnPlay.Enabled = false;
         btnStop.Enabled = false;
@@ -94,12 +92,14 @@ partial class Form1
             btnLoadWav, btnLoadFrames, btnGenFrames, btnEncode, btnDecode, btnPlay, btnStop
         });
 
+        // SplitContainer 
         ((System.ComponentModel.ISupportInitialize)splitMain).BeginInit();
         splitMain.Dock = DockStyle.Fill;
         splitMain.Orientation = Orientation.Vertical;
         splitMain.SplitterWidth = 4;
         splitMain.BackColor = Color.FromArgb(35, 35, 50);
 
+        // PictureBox
         ((System.ComponentModel.ISupportInitialize)pictureBoxFrame).BeginInit();
         pictureBoxFrame.Dock = DockStyle.Fill;
         pictureBoxFrame.BackColor = Color.Black;
@@ -107,6 +107,7 @@ partial class Form1
         pictureBoxFrame.BorderStyle = BorderStyle.None;
         ((System.ComponentModel.ISupportInitialize)pictureBoxFrame).EndInit();
 
+        // Log
         rtbLog.Dock = DockStyle.Fill;
         rtbLog.BackColor = Color.FromArgb(14, 14, 22);
         rtbLog.ForeColor = Color.FromArgb(160, 160, 200);
@@ -122,6 +123,7 @@ partial class Form1
         splitMain.Panel2.Controls.Add(rtbLog);
         ((System.ComponentModel.ISupportInitialize)splitMain).EndInit();
 
+        // Bottom panel
         pnlBottom.Dock = DockStyle.Bottom;
         pnlBottom.Height = 38;
         pnlBottom.BackColor = Color.FromArgb(22, 22, 36);
@@ -146,6 +148,7 @@ partial class Form1
 
         pnlBottom.Controls.AddRange(new Control[] { progressBar, lblStatus, lblTimer });
 
+        // Assemble
         Controls.Add(splitMain);
         Controls.Add(pnlBottom);
         Controls.Add(pnlToolbar);
